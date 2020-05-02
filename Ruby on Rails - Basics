@@ -1,0 +1,107 @@
+# page 생성하기
+# 글 쓰기 페이지 만들기
+## 1. 글 읽기 페이지 만들기
+## prompt에
+rails generate controller 이름
+## home_controller.rb
+def index
+end
+## view파일 (views 폴더)
+index.erb 파일 생성
+## routes.rb (config 폴더)
+get '/index' => 'home/index'
+## 2. form 태그가 추가된 write 페이지 만들기
+## home_controller.rb
+def write
+end
+## view파일
+write.erb 파일 생성
+## routes.rb에
+get '/write' -> 'home#write'
+## write.erb
+<form action="/create" method="post">
+  제목: <input type="text" name="title"/><br>
+  내용: <input type="text" name="content"/>
+  <input type="submit"/>
+</form>
+<a href="/index">뒤로 돌아가기</a>
+## 3. Create action
+## home_controller.rb
+def create
+  post = Post.new
+  post.title = params[:title]
+  post.content = params[:content]
+  post.save
+  
+  redirect_to '/index'
+end
+##routes.rb
+post '/create' => 'home#create'
+
+# Post 방식으로 데이터를 보낼 때 AuthenticityToken error를 발생시키지 않기
+# 1. application_controller.rb 로 들어감
+class ApplicationController < ActionController::Base
+  skip_before_action :verify_authenticity_token, raise: false
+end
+
+# 모델 생성하기
+prompt에 rails g model Post
+config/migrate 폴더의 migration 파일을 수정
+rake db:migrate
+
+# 게시판 db 모델 설정하기
+# db폴더의 migrate 폴더 (마이그레이션 파일은 실제 데이터를 넣을 형식을 결정하는 파일)
+class CreatePosts < ActiveRecord::Migration[5.2]
+  def change
+    create_table :posts do |t|
+      t.string :title
+      t.text   :content
+
+      t.timestamps null: false
+    end
+  end
+end
+
+# 글 read action
+## home_controller에
+def index
+  @posts = Post.all
+end
+## index.erb에
+<% @posts.each do |post| %>
+제목: <%=post.title%><br>
+내용: <%=post.content%><hr>
+<% end %>
+
+# 글 수정하기 기능
+## routes.rb
+get '/modify/:post_id' => 'home#modify'
+## home_controller
+  def modify
+  end
+## view 파일
+modify.erb 파일 생성
+## index.erb 파일
+<a href="/modify">수정하기</a>
+
+
+# 글 수정 action
+## Create와 유사한데 다른점은 Controller 부분
+def update
+  post = Post.find(params[:post_id])
+  post.title = params[:title]
+  post.save
+  redirect_to '/'
+end
+## 그 후 routes.rb에 작성
+post"update/:id" => "home#update"
+
+
+# 글 삭제 action
+def delete
+  post = Post.destroy(params[:id])
+  redirect_to :back
+end
+##그 후 routes.rb에 작성
+get'delete/:id => 'home#delete'
+##여기서 get으로 하는 이유는 a태그로 링크를 누르기 위함
